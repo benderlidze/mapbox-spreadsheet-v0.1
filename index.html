@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>MAP</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.10.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.10.0/mapbox-gl.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+
+        .popup {
+            padding: 10px;
+            min-width: 300px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="map"></div>
+    <script>
+
+        const main = {
+            data: [],
+            filters: new Set()
+        };
+
+        // const switchersEnableDiv = document.getElementById("filters")
+        const switchersEnableDiv = document.getElementById("infoDiv")
+        mapboxgl.accessToken = "pk.eyJ1IjoianVsaWFtb3JpbiIsImEiOiJjbGYzMWYwZjgwZDU4NDFwcWl2d20zOXpiIn0.Xo35QlcArXdYxAPOU7XbYA";
+        
+        const map = new mapboxgl.Map({
+            container: 'map',
+            zoom: 2.7,
+            center: { lng: -100.24484896840363, lat: 29.50674119154816 },
+            // Choose from Mapbox's core styles, or make your own style with Mapbox Studio
+            style: "mapbox://styles/juliamorin/clffoqm7m000001p3kcuuizdp",
+            projection: 'mercator'
+        });
+
+        //add controls
+        map.addControl(new mapboxgl.NavigationControl());
+
+        map.on('load', () => {
+
+            d3.csv('https://docs.google.com/spreadsheets/d/e/2PACX-1vSIZhH8eD8wdROL44mb7wkXTzjTo6-XSTfSyA-Sg4jwFMoPjXexXUfdq2jDzuQP4P2sjs1eRwKItjos/pub?output=csv')
+                .then(arr => {
+
+                    console.log('arr', arr);
+                    const pins = arr
+                        .map((pin, key) => {
+                            const { name, address, hours, types, website, lat, lng } = pin
+
+                            return {
+                                type: 'Feature',
+                                geometry: {
+                                    type: 'Point',
+                                    coordinates: [lng, lat]
+                                },
+                                properties: {
+                                    name, address, hours, types, website,
+                                    color: 'red',
+                                }
+                            }
+                        });
+                    map.getSource('main').setData(turf.featureCollection(pins));
+                })
+
+
+            map.addSource('main', {
+                'type': 'geojson',
+                'data': turf.featureCollection([])
+            });
+
+            map.addLayer({
+                'id': 'main',
+                'type': 'circle',
+                'source': 'main',
+                'paint': {
+                    'circle-radius': 5,
+                    'circle-color': ['get', 'color'],
+                    "circle-stroke-color": "blue",
+                    "circle-stroke-width": 2,
+                    "circle-opacity": ['get', 'opacity']
+                }
+            });
+
+            map.on('click', 'main', (e) => {
+                // Copy coordinates array.
+                const coordinates = e.features[0].geometry.coordinates.slice();
+                // Ensure that if the map is zoomed out such that multiple
+                // copies of the feature are visible, the popup appears
+                // over the copy being pointed to.
+                while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+                    coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+                }
+                const { name, address, hours, types, website, lat, lng } = e.features[0].properties
+                const descr = `
+                                <h1>${name}</h1>
+                                <div style="margin-top:10px;">
+                                <div>${address}</div>
+                                <div>${hours}</div>
+                                <div>${types}</div>
+                                <div>${website}</div>
+                                </div>
+                            `
+                new mapboxgl.Popup({ className: 'popup' })
+                    .setLngLat(coordinates)
+                    .setHTML(descr)
+                    .addTo(map);
+            });
+
+            map.on('mousemove', 'main', e => {
+                map.getCanvas().style.cursor = 'pointer';
+            })
+
+            map.on('mouseleave', 'main', () => {
+                map.getCanvas().style.cursor = '';
+            });
+
+        });
+
+    </script>
+</body>
+
+</html>
