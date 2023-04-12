@@ -42,7 +42,7 @@
         // const switchersEnableDiv = document.getElementById("filters")
         const switchersEnableDiv = document.getElementById("infoDiv")
         mapboxgl.accessToken = "pk.eyJ1IjoianVsaWFtb3JpbiIsImEiOiJjbGYzMWYwZjgwZDU4NDFwcWl2d20zOXpiIn0.Xo35QlcArXdYxAPOU7XbYA";
-        
+
         const map = new mapboxgl.Map({
             container: 'map',
             zoom: 2.7,
@@ -56,6 +56,12 @@
         map.addControl(new mapboxgl.NavigationControl());
 
         map.on('load', () => {
+
+            //load image to mapbox 
+            map.loadImage('e-waste recycling center logo.jpg', (error, image) => {
+                if (error) throw error;
+                map.addImage('recycle_icon', image);
+            });
 
             d3.csv('https://docs.google.com/spreadsheets/d/e/2PACX-1vSIZhH8eD8wdROL44mb7wkXTzjTo6-XSTfSyA-Sg4jwFMoPjXexXUfdq2jDzuQP4P2sjs1eRwKItjos/pub?output=csv')
                 .then(arr => {
@@ -86,16 +92,27 @@
                 'data': turf.featureCollection([])
             });
 
+            // map.addLayer({
+            //     'id': 'main',
+            //     'type': 'circle',
+            //     'source': 'main',
+            //     'paint': {
+            //         'circle-radius': 5,
+            //         'circle-color': ['get', 'color'],
+            //         "circle-stroke-color": "blue",
+            //         "circle-stroke-width": 2,
+            //         "circle-opacity": ['get', 'opacity']
+            //     }
+            // });
+
             map.addLayer({
                 'id': 'main',
-                'type': 'circle',
-                'source': 'main',
-                'paint': {
-                    'circle-radius': 5,
-                    'circle-color': ['get', 'color'],
-                    "circle-stroke-color": "blue",
-                    "circle-stroke-width": 2,
-                    "circle-opacity": ['get', 'opacity']
+                'type': 'symbol',
+                'source': 'main', // reference the data source
+                'layout': {
+                    'icon-image': 'recycle_icon', // reference the image
+                    'icon-size': 0.6,
+                    'icon-allow-overlap': true
                 }
             });
 
